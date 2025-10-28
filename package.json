@@ -1,0 +1,31 @@
+{
+  "name": "wechat-video-download-service",
+  "version": "1.0.0",
+  "description": "微信服务号视频下载服务 - 自动下载视频号转发的视频",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "wechat",
+    "video",
+    "download",
+    "service"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "axios": "^1.6.0",
+    "xml2js": "^0.6.2",
+    "crypto": "^1.0.1",
+    "dotenv": "^16.3.1",
+    "form-data": "^4.0.0",
+    "fs-extra": "^11.1.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
