@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>视频列表 - 微信视频下载服务</title>
+    <link rel="stylesheet" href="/admin/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h2>视频下载服务</h2>
+            </div>
+            <ul class="sidebar-menu">
+                <li><a href="/admin/dashboard">仪表盘</a></li>
+                <li><a href="/admin/config">配置管理</a></li>
+                <li class="active"><a href="/admin/videos">视频列表</a></li>
+                <li><a href="/admin/settings">系统设置</a></li>
+                <li><a href="#" onclick="logout()">退出登录</a></li>
+            </ul>
+        </nav>
+
+        <main class="main-content">
+            <div class="page-header">
+                <h1>视频列表</h1>
+                <button class="btn btn-primary" onclick="loadVideos()">刷新</button>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2>已下载视频 (<span id="videoCount">0</span>)</h2>
+                </div>
+                <div class="card-body">
+                    <div id="videosContainer">
+                        <p class="loading">加载中...</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/admin/static/js/common.js"></script>
+    <script>
+        async function loadVideos() {
+            const container = document.getElementById('videosContainer');
+            container.innerHTML = '<p class="loading">加载中...</p>';
+
+            try {
+                const response = await fetch('/admin/api/videos');
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('videoCount').textContent = data.count;
+
+                    if (data.videos.length === 0) {
+                        container.innerHTML = '<p class="empty-state">暂无视频</p>';
+                        return;
+                    }
+
+                    const html = `
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>序号</th>
+                                    <th>文件名</th>
+                                    <th>大小</th>
+                                    <th>下载时间</th>
+                                    <th>文件路径</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${data.videos.map((video, index) => `
+                                    <tr>
+                                        <td>${index + 1}</td>
+                                        <td>${video.filename}</td>
+                                        <td>${video.sizeMB} MB</td>
+                                        <td>${formatDateTime(new Date(video.createdAt))}</td>
+                                        <td><code>${video.filepath}</code></td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    `;
+
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = '<p class="error">加载失败</p>';
+                }
+            } catch (error) {
+                console.error('加载视频列表失败:', error);
+                container.innerHTML = '<p class="error">加载失败，请稍后重试</p>';
+            }
+        }
+
+        function formatDateTime(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+
+            return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        }
+
+        // 页面加载时获取视频列表
+        loadVideos();
+
+        // 每30秒刷新一次
+        setInterval(loadVideos, 30000);
+    </script>
+</body>
+</html>

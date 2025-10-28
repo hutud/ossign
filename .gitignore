@@ -6,6 +6,10 @@ yarn.lock
 # Environment variables
 .env
 
+# Configuration data
+data/
+config.json
+
 # Downloaded files
 downloads/
 *.mp4

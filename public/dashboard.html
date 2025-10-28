@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>仪表盘 - 微信视频下载服务</title>
+    <link rel="stylesheet" href="/admin/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h2>视频下载服务</h2>
+            </div>
+            <ul class="sidebar-menu">
+                <li class="active"><a href="/admin/dashboard">仪表盘</a></li>
+                <li><a href="/admin/config">配置管理</a></li>
+                <li><a href="/admin/videos">视频列表</a></li>
+                <li><a href="/admin/settings">系统设置</a></li>
+                <li><a href="#" onclick="logout()">退出登录</a></li>
+            </ul>
+        </nav>
+
+        <main class="main-content">
+            <div class="page-header">
+                <h1>仪表盘</h1>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">📹</div>
+                    <div class="stat-info">
+                        <h3 id="totalVideos">-</h3>
+                        <p>总视频数</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">💾</div>
+                    <div class="stat-info">
+                        <h3 id="totalSize">-</h3>
+                        <p>总大小</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🕒</div>
+                    <div class="stat-info">
+                        <h3 id="latestTime">-</h3>
+                        <p>最新下载</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2>最新视频</h2>
+                </div>
+                <div class="card-body">
+                    <div id="latestVideos">加载中...</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2>快速链接</h2>
+                </div>
+                <div class="card-body">
+                    <div class="quick-links">
+                        <a href="/admin/config" class="quick-link-btn">
+                            <span class="icon">⚙️</span>
+                            <span>配置微信公众号</span>
+                        </a>
+                        <a href="/admin/videos" class="quick-link-btn">
+                            <span class="icon">📋</span>
+                            <span>查看所有视频</span>
+                        </a>
+                        <a href="/admin/settings" class="quick-link-btn">
+                            <span class="icon">🔧</span>
+                            <span>系统设置</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/admin/static/js/common.js"></script>
+    <script>
+        async function loadStats() {
+            try {
+                const response = await fetch('/admin/api/stats');
+                const data = await response.json();
+
+                if (data.success) {
+                    const stats = data.stats;
+                    document.getElementById('totalVideos').textContent = stats.totalVideos;
+                    document.getElementById('totalSize').textContent = stats.totalSizeMB + ' MB';
+
+                    if (stats.latestVideo) {
+                        const date = new Date(stats.latestVideo.createdAt);
+                        document.getElementById('latestTime').textContent = formatDate(date);
+                    } else {
+                        document.getElementById('latestTime').textContent = '暂无';
+                    }
+                }
+            } catch (error) {
+                console.error('加载统计信息失败:', error);
+            }
+        }
+
+        async function loadLatestVideos() {
+            try {
+                const response = await fetch('/admin/api/videos');
+                const data = await response.json();
+
+                if (data.success && data.videos.length > 0) {
+                    const videos = data.videos.slice(0, 5);
+                    const html = `
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>文件名</th>
+                                    <th>大小</th>
+                                    <th>下载时间</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${videos.map(video => `
+                                    <tr>
+                                        <td>${video.filename}</td>
+                                        <td>${video.sizeMB} MB</td>
+                                        <td>${formatDate(new Date(video.createdAt))}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    `;
+                    document.getElementById('latestVideos').innerHTML = html;
+                } else {
+                    document.getElementById('latestVideos').innerHTML = '<p class="empty-state">暂无视频</p>';
+                }
+            } catch (error) {
+                console.error('加载视频列表失败:', error);
+                document.getElementById('latestVideos').innerHTML = '<p class="error">加载失败</p>';
+            }
+        }
+
+        function formatDate(date) {
+            const now = new Date();
+            const diff = now - date;
+            const hours = Math.floor(diff / 3600000);
+
+            if (hours < 1) {
+                const minutes = Math.floor(diff / 60000);
+                return minutes < 1 ? '刚刚' : `${minutes}分钟前`;
+            } else if (hours < 24) {
+                return `${hours}小时前`;
+            } else {
+                return date.toLocaleString('zh-CN');
+            }
+        }
+
+        // 页面加载时获取数据
+        loadStats();
+        loadLatestVideos();
+
+        // 每30秒刷新一次
+        setInterval(() => {
+            loadStats();
+            loadLatestVideos();
+        }, 30000);
+    </script>
+</body>
+</html>

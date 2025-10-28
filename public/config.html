@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>配置管理 - 微信视频下载服务</title>
+    <link rel="stylesheet" href="/admin/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h2>视频下载服务</h2>
+            </div>
+            <ul class="sidebar-menu">
+                <li><a href="/admin/dashboard">仪表盘</a></li>
+                <li class="active"><a href="/admin/config">配置管理</a></li>
+                <li><a href="/admin/videos">视频列表</a></li>
+                <li><a href="/admin/settings">系统设置</a></li>
+                <li><a href="#" onclick="logout()">退出登录</a></li>
+            </ul>
+        </nav>
+
+        <main class="main-content">
+            <div class="page-header">
+                <h1>配置管理</h1>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2>微信公众号配置</h2>
+                </div>
+                <div class="card-body">
+                    <form id="wechatConfigForm">
+                        <div class="form-group">
+                            <label for="appId">AppID *</label>
+                            <input type="text" id="appId" name="appId" required placeholder="请输入公众号AppID">
+                            <small>在微信公众平台后台"开发-基本配置"中查看</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="appSecret">AppSecret *</label>
+                            <input type="text" id="appSecret" name="appSecret" required placeholder="请输入公众号AppSecret">
+                            <small>在微信公众平台后台"开发-基本配置"中查看</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="token">Token *</label>
+                            <input type="text" id="token" name="token" required placeholder="请输入Token">
+                            <small>需与微信公众平台后台"服务器配置"中的Token一致</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="encodingAESKey">EncodingAESKey</label>
+                            <input type="text" id="encodingAESKey" name="encodingAESKey" placeholder="请输入EncodingAESKey（可选）">
+                            <small>如果使用加密模式，需要填写此项</small>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">保存配置</button>
+                            <button type="button" class="btn btn-secondary" onclick="loadConfig()">重置</button>
+                        </div>
+                    </form>
+
+                    <div id="configMessage" class="message" style="display: none;"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2>服务器配置说明</h2>
+                </div>
+                <div class="card-body">
+                    <div class="info-box">
+                        <h3>在微信公众平台配置服务器URL</h3>
+                        <ol>
+                            <li>登录微信公众平台后台</li>
+                            <li>进入"设置与开发" - "基本配置"</li>
+                            <li>在"服务器配置"中填写以下信息：
+                                <ul>
+                                    <li><strong>URL</strong>: <code id="serverUrl">http://your-domain.com:3000/wechat</code></li>
+                                    <li><strong>Token</strong>: 与上面填写的Token保持一致</li>
+                                    <li><strong>EncodingAESKey</strong>: 与上面填写的保持一致</li>
+                                    <li><strong>消息加解密方式</strong>: 建议选择"明文模式"或"兼容模式"</li>
+                                </ul>
+                            </li>
+                            <li>点击"启用"按钮完成配置</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/admin/static/js/common.js"></script>
+    <script>
+        async function loadConfig() {
+            try {
+                const response = await fetch('/admin/api/config');
+                const data = await response.json();
+
+                if (data.success && data.config.wechat) {
+                    const wechat = data.config.wechat;
+                    document.getElementById('appId').value = wechat.appId || '';
+                    document.getElementById('appSecret').value = wechat.appSecret || '';
+                    document.getElementById('token').value = wechat.token || '';
+                    document.getElementById('encodingAESKey').value = wechat.encodingAESKey || '';
+                }
+
+                // 更新服务器URL
+                if (data.config.system) {
+                    const port = data.config.system.port || 3000;
+                    document.getElementById('serverUrl').textContent =
+                        `http://your-domain.com:${port}/wechat`;
+                }
+            } catch (error) {
+                console.error('加载配置失败:', error);
+            }
+        }
+
+        document.getElementById('wechatConfigForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = {
+                appId: document.getElementById('appId').value,
+                appSecret: document.getElementById('appSecret').value,
+                token: document.getElementById('token').value,
+                encodingAESKey: document.getElementById('encodingAESKey').value
+            };
+
+            try {
+                const response = await fetch('/admin/api/config/wechat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+                showMessage(data.message, data.success ? 'success' : 'error');
+            } catch (error) {
+                console.error('保存配置失败:', error);
+                showMessage('保存失败，请稍后重试', 'error');
+            }
+        });
+
+        function showMessage(message, type) {
+            const messageDiv = document.getElementById('configMessage');
+            messageDiv.textContent = message;
+            messageDiv.className = `message ${type}`;
+            messageDiv.style.display = 'block';
+
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // 页面加载时获取配置
+        loadConfig();
+    </script>
+</body>
+</html>

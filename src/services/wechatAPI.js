@@ -1,5 +1,5 @@
 const axios = require('axios');
-const config = require('../config');
+const configManager = require('./configManager');
 
 // Access Token 缓存
 let accessToken = null;
@@ -16,11 +16,18 @@ async function getAccessToken() {
   }
 
   try {
+    // 从配置文件读取微信配置
+    const wechatConfig = await configManager.getWechatConfig();
+
+    if (!wechatConfig.appId || !wechatConfig.appSecret) {
+      throw new Error('微信配置未完成，请先在后台管理系统配置 AppID 和 AppSecret');
+    }
+
     const response = await axios.get('https://api.weixin.qq.com/cgi-bin/token', {
       params: {
         grant_type: 'client_credential',
-        appid: config.wechat.appId,
-        secret: config.wechat.appSecret
+        appid: wechatConfig.appId,
+        secret: wechatConfig.appSecret
       }
     });
 

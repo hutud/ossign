@@ -4,12 +4,21 @@
 
 ## 功能特点
 
+### 核心功能
 - ✅ 接收视频号转发的视频
 - ✅ 自动下载视频到服务器
 - ✅ 支持普通视频和小视频
 - ✅ 实时反馈下载进度和结果
 - ✅ 查看已下载视频列表
 - ✅ 提供 RESTful API 接口
+
+### 后台管理系统
+- ✅ 可视化配置管理界面
+- ✅ 在线配置微信公众号密钥
+- ✅ 视频列表查看和管理
+- ✅ 系统设置和参数配置
+- ✅ 管理员密码修改
+- ✅ 登录认证保护
 
 ## 技术栈
 
@@ -26,20 +35,37 @@
 ossign/
 ├── src/
 │   ├── config/
-│   │   └── index.js           # 配置管理
+│   │   └── index.js            # 配置管理
+│   ├── middleware/
+│   │   └── auth.js             # 认证中间件
+│   ├── routes/
+│   │   └── admin.js            # 后台管理路由
 │   ├── services/
-│   │   ├── messageHandler.js  # 消息处理服务
-│   │   ├── videoDownloader.js # 视频下载服务
-│   │   └── wechatAPI.js       # 微信API服务
+│   │   ├── configManager.js    # 配置持久化服务
+│   │   ├── messageHandler.js   # 消息处理服务
+│   │   ├── videoDownloader.js  # 视频下载服务
+│   │   └── wechatAPI.js        # 微信API服务
 │   ├── utils/
-│   │   └── wechat.js          # 微信工具函数
-│   └── server.js              # 主服务器文件
-├── downloads/                  # 视频下载目录（自动创建）
-├── .env                       # 环境配置文件（需自己创建）
-├── .env.example              # 环境配置示例
-├── .gitignore                # Git忽略配置
-├── package.json              # 项目依赖
-└── README.md                 # 项目文档
+│   │   └── wechat.js           # 微信工具函数
+│   └── server.js               # 主服务器文件
+├── public/                      # 前端页面
+│   ├── static/
+│   │   ├── css/
+│   │   │   └── style.css       # 样式文件
+│   │   └── js/
+│   │       └── common.js       # 通用JS
+│   ├── login.html              # 登录页面
+│   ├── dashboard.html          # 仪表盘
+│   ├── config.html             # 配置管理
+│   ├── videos.html             # 视频列表
+│   └── settings.html           # 系统设置
+├── data/
+│   └── config.json             # 配置存储文件（自动创建）
+├── downloads/                   # 视频下载目录（自动创建）
+├── .env.example                # 环境配置示例
+├── .gitignore                  # Git忽略配置
+├── package.json                # 项目依赖
+└── README.md                   # 项目文档
 ```
 
 ## 快速开始
@@ -56,33 +82,7 @@ ossign/
 npm install
 ```
 
-### 3. 配置环境变量
-
-复制 `.env.example` 为 `.env` 并填写配置：
-
-```bash
-cp .env.example .env
-```
-
-编辑 `.env` 文件：
-
-```env
-# 微信服务号配置
-WECHAT_APP_ID=你的AppID
-WECHAT_APP_SECRET=你的AppSecret
-WECHAT_TOKEN=你的Token
-WECHAT_ENCODING_AES_KEY=你的EncodingAESKey
-
-# 服务器配置
-PORT=3000
-NODE_ENV=production
-
-# 视频下载配置
-DOWNLOAD_DIR=./downloads
-MAX_VIDEO_SIZE=100MB
-```
-
-### 4. 启动服务
+### 3. 启动服务
 
 开发模式（自动重启）：
 ```bash
@@ -94,17 +94,41 @@ npm run dev
 npm start
 ```
 
-### 5. 配置微信服务号
+服务启动后，会显示：
+```
+🚀 微信视频下载服务已启动
+📡 服务地址: http://localhost:3000
+📁 下载目录: ./downloads
+
+📱 后台管理:
+   访问地址: http://localhost:3000/admin/login
+   默认账号: admin
+   默认密码: admin123
+```
+
+### 4. 配置微信公众号（通过后台管理系统）
+
+1. 访问后台管理系统：`http://localhost:3000/admin/login`
+2. 使用默认账号登录（admin / admin123）
+3. 进入「配置管理」页面
+4. 填写微信公众号配置：
+   - **AppID**: 在微信公众平台"开发-基本配置"中查看
+   - **AppSecret**: 在微信公众平台"开发-基本配置"中查看
+   - **Token**: 自定义token（需与微信后台配置一致）
+   - **EncodingAESKey**: 可选，如使用加密模式需填写
+5. 点击"保存配置"
+
+### 5. 配置微信公众平台服务器
 
 在微信公众平台后台配置：
 
 1. 进入「开发」-「基本配置」
 2. 服务器配置：
    - **URL**: `http://你的域名:3000/wechat`
-   - **Token**: 与 `.env` 中的 `WECHAT_TOKEN` 一致
-   - **EncodingAESKey**: 与 `.env` 中的 `WECHAT_ENCODING_AES_KEY` 一致
-   - **消息加解密方式**: 明文模式或兼容模式
-3. 提交配置并启用
+   - **Token**: 与后台管理系统中配置的Token一致
+   - **EncodingAESKey**: 与后台管理系统中配置的一致（可选）
+   - **消息加解密方式**: 建议选择"明文模式"或"兼容模式"
+3. 点击"提交"并启用配置
 
 ## 使用方法
 
@@ -131,6 +155,97 @@ npm start
 
 - `帮助` 或 `help` - 查看使用帮助
 - `列表` 或 `list` - 查看已下载的视频列表
+
+## 后台管理系统
+
+### 访问地址
+
+```
+http://localhost:3000/admin/login
+```
+
+### 默认账号
+
+- **用户名**: admin
+- **密码**: admin123
+
+**重要**: 首次登录后，请立即修改默认密码！
+
+### 功能模块
+
+#### 1. 仪表盘 (Dashboard)
+
+- 查看系统统计信息
+  - 总视频数
+  - 总文件大小
+  - 最新下载时间
+- 查看最新下载的视频列表
+- 快速访问其他功能模块
+
+#### 2. 配置管理 (Config)
+
+**微信公众号配置**
+- AppID: 公众号的AppID
+- AppSecret: 公众号的AppSecret
+- Token: 自定义Token（需与微信后台一致）
+- EncodingAESKey: 消息加密密钥（可选）
+
+**配置说明**
+- 所有配置保存后立即生效（Token相关配置需与微信后台同步）
+- 页面包含详细的配置指引
+- 自动显示服务器URL配置地址
+
+#### 3. 视频列表 (Videos)
+
+- 查看所有已下载的视频
+- 显示视频信息：
+  - 文件名
+  - 文件大小
+  - 下载时间
+  - 文件路径
+- 支持自动刷新（每30秒）
+- 手动刷新功能
+
+#### 4. 系统设置 (Settings)
+
+**系统配置**
+- 服务端口（修改后需重启）
+- 下载目录路径
+- 最大视频大小限制
+
+**修改密码**
+- 修改管理员登录密码
+- 密码长度不少于6位
+- 修改成功后需重新登录
+
+### 配置文件
+
+所有配置保存在 `data/config.json` 文件中：
+
+```json
+{
+  "wechat": {
+    "appId": "your_app_id",
+    "appSecret": "your_app_secret",
+    "token": "your_token",
+    "encodingAESKey": ""
+  },
+  "system": {
+    "port": 3000,
+    "downloadDir": "./downloads",
+    "maxVideoSize": "100MB"
+  },
+  "admin": {
+    "username": "admin",
+    "password": "$2a$10$..."
+  }
+}
+```
+
+**注意**:
+- 配置文件在首次启动时自动创建
+- 密码经过 bcrypt 加密存储
+- 不要直接编辑配置文件，请通过后台管理界面修改
 
 ## API 接口
 
