@@ -9,6 +9,13 @@ const DEFAULT_CONFIG = {
     token: '',
     encodingAESKey: ''
   },
+  finder: {
+    enabled: true,
+    parseApiUrl: 'https://video-api.dddming.com/api/process',
+    apiKey: '',
+    apiSecret: '',
+    fallbackMethod: 'link' // link | none
+  },
   system: {
     port: 3000,
     downloadDir: './downloads',
@@ -153,12 +160,41 @@ async function updateAdminPassword(hashedPassword) {
   }
 }
 
+/**
+ * 获取视频号配置
+ * @returns {Promise<Object>} 视频号配置
+ */
+async function getFinderConfig() {
+  const config = await getConfig();
+  return config.finder || DEFAULT_CONFIG.finder;
+}
+
+/**
+ * 更新视频号配置
+ * @param {Object} finderConfig - 视频号配置
+ * @returns {Promise<boolean>} 是否成功
+ */
+async function updateFinderConfig(finderConfig) {
+  try {
+    const config = await getConfig();
+    config.finder = { ...config.finder, ...finderConfig };
+    await fs.writeJson(CONFIG_FILE, config, { spaces: 2 });
+    console.log('视频号配置已更新');
+    return true;
+  } catch (error) {
+    console.error('更新视频号配置失败:', error);
+    return false;
+  }
+}
+
 module.exports = {
   initConfig,
   getConfig,
   updateConfig,
   getWechatConfig,
   updateWechatConfig,
+  getFinderConfig,
+  updateFinderConfig,
   getSystemConfig,
   updateSystemConfig,
   getAdminConfig,

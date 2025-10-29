@@ -172,6 +172,41 @@ router.post('/api/config/wechat', requireAuth, async (req, res) => {
 });
 
 /**
+ * 更新视频号配置
+ */
+router.post('/api/config/finder', requireAuth, async (req, res) => {
+  try {
+    const { enabled, parseApiUrl, apiKey, apiSecret, fallbackMethod } = req.body;
+
+    const success = await configManager.updateFinderConfig({
+      enabled,
+      parseApiUrl,
+      apiKey,
+      apiSecret,
+      fallbackMethod
+    });
+
+    if (success) {
+      res.json({
+        success: true,
+        message: '视频号配置已更新'
+      });
+    } else {
+      res.json({
+        success: false,
+        message: '更新失败'
+      });
+    }
+  } catch (error) {
+    console.error('更新视频号配置错误:', error);
+    res.json({
+      success: false,
+      message: '更新失败'
+    });
+  }
+});
+
+/**
  * 更新系统配置
  */
 router.post('/api/config/system', requireAuth, async (req, res) => {

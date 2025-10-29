@@ -68,6 +68,66 @@
 
             <div class="card">
                 <div class="card-header">
+                    <h2>视频号配置</h2>
+                </div>
+                <div class="card-body">
+                    <form id="finderConfigForm">
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="finderEnabled" name="finderEnabled">
+                                启用视频号视频下载功能
+                            </label>
+                            <small>开启后将支持下载从视频号转发的视频</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="parseApiUrl">视频解析API地址</label>
+                            <input type="text" id="parseApiUrl" name="parseApiUrl" placeholder="https://video-api.dddming.com/api/process">
+                            <small>用于解析视频号视频的第三方API地址（可选）</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="apiKey">API Key</label>
+                            <input type="text" id="apiKey" name="apiKey" placeholder="如果API需要认证，请填写">
+                            <small>某些解析API需要提供认证密钥</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="apiSecret">API Secret</label>
+                            <input type="password" id="apiSecret" name="apiSecret" placeholder="如果API需要认证，请填写">
+                            <small>某些解析API需要提供密钥</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="fallbackMethod">下载失败时的处理方式</label>
+                            <select id="fallbackMethod" name="fallbackMethod">
+                                <option value="link">返回视频号链接</option>
+                                <option value="none">直接提示失败</option>
+                            </select>
+                            <small>当自动下载失败时的回退策略</small>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">保存配置</button>
+                        </div>
+                    </form>
+
+                    <div id="finderMessage" class="message" style="display: none;"></div>
+
+                    <div class="info-box" style="margin-top: 20px;">
+                        <h3>视频号下载说明</h3>
+                        <ul>
+                            <li>视频号视频下载依赖第三方解析服务</li>
+                            <li>默认使用公共API，可能不稳定</li>
+                            <li>建议自行搭建解析服务或使用付费API</li>
+                            <li>如果解析失败，系统会返回视频号链接供用户手动下载</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
                     <h2>服务器配置说明</h2>
                 </div>
                 <div class="card-body">
@@ -105,6 +165,16 @@
                     document.getElementById('appSecret').value = wechat.appSecret || '';
                     document.getElementById('token').value = wechat.token || '';
                     document.getElementById('encodingAESKey').value = wechat.encodingAESKey || '';
+                }
+
+                // 加载视频号配置
+                if (data.config.finder) {
+                    const finder = data.config.finder;
+                    document.getElementById('finderEnabled').checked = finder.enabled !== false;
+                    document.getElementById('parseApiUrl').value = finder.parseApiUrl || '';
+                    document.getElementById('apiKey').value = finder.apiKey || '';
+                    document.getElementById('apiSecret').value = finder.apiSecret || '';
+                    document.getElementById('fallbackMethod').value = finder.fallbackMethod || 'link';
                 }
 
                 // 更新服务器URL
@@ -145,8 +215,37 @@
             }
         });
 
-        function showMessage(message, type) {
-            const messageDiv = document.getElementById('configMessage');
+        // 视频号配置表单提交
+        document.getElementById('finderConfigForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = {
+                enabled: document.getElementById('finderEnabled').checked,
+                parseApiUrl: document.getElementById('parseApiUrl').value,
+                apiKey: document.getElementById('apiKey').value,
+                apiSecret: document.getElementById('apiSecret').value,
+                fallbackMethod: document.getElementById('fallbackMethod').value
+            };
+
+            try {
+                const response = await fetch('/admin/api/config/finder', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+                showMessage('finderMessage', data.message, data.success ? 'success' : 'error');
+            } catch (error) {
+                console.error('保存视频号配置失败:', error);
+                showMessage('finderMessage', '保存失败，请稍后重试', 'error');
+            }
+        });
+
+        function showMessage(elementId, message, type) {
+            const messageDiv = document.getElementById(elementId);
             messageDiv.textContent = message;
             messageDiv.className = `message ${type}`;
             messageDiv.style.display = 'block';
